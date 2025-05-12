@@ -1189,3 +1189,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return httpServer;
 }
+import { Router } from 'express';
+import jwt from 'jsonwebtoken';
+
+const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const TOKEN_EXPIRY = '15m';
+
+// Add refresh token endpoint
+router.post('/auth/refresh', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const newToken = jwt.sign({ id: decoded.id, email: decoded.email }, JWT_SECRET, {
+      expiresIn: TOKEN_EXPIRY
+    });
+
+    res.json({ token: newToken });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+export default router;

@@ -10,6 +10,8 @@
 - ✅ Protected routes redirect to login if not authenticated
 - ✅ API request utilities updated to include auth tokens in headers
 - ✅ Navigation component that shows different options based on auth status
+- ✅ Token refresh mechanism implemented with automatic refresh before expiry
+- ✅ Session handling with token expiration
 
 ### Core Features
 - ✅ Schema Designer module (basic implementation)
