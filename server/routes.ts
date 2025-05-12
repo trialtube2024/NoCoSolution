@@ -1,6 +1,7 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import jwt from "jsonwebtoken";
 
 // Mock data for schemas and forms (in a real app, this would be in a database)
 let schemas = [
@@ -78,7 +79,56 @@ let forms = [
   }
 ];
 
+// JWT secret key (in a real app, this would be in environment variables)
+const JWT_SECRET = "nocostudio-secret-key";
+const TOKEN_EXPIRATION = "24h";
+
+// Authentication middleware
+const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+  // Skip authentication for auth routes and options requests
+  if (
+    req.path.startsWith("/api/auth/") ||
+    req.method === "OPTIONS"
+  ) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+  
+  if (authHeader) {
+    const token = authHeader.split(" ")[1];
+    
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({ message: "Invalid or expired token" });
+      }
+      
+      // Add user data to request for use in route handlers
+      (req as any).user = user;
+      next();
+    });
+  } else {
+    // For development purposes, we'll allow unauthorized access
+    // In production, you would uncomment the following line:
+    // return res.status(401).json({ message: "Authentication required" });
+    next();
+  }
+};
+
+// Generate JWT token
+const generateToken = (user: any) => {
+  const payload = {
+    id: user.id,
+    username: user.username,
+    role: user.role
+  };
+  
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply authentication middleware
+  app.use(authenticateJWT);
   // Schemas API
   app.get("/api/schemas", (req: Request, res: Response) => {
     res.json(schemas);
@@ -654,11 +704,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   ];
 
-  let appUsers = [
-    { id: "1", username: "admin", email: "admin@example.com", password: "admin123", role: "admin" },
-    { id: "2", username: "editor1", email: "editor1@example.com", password: "editor123", role: "editor" },
-    { id: "3", username: "editor2", email: "editor2@example.com", password: "editor456", role: "editor" },
-    { id: "4", username: "viewer1", email: "viewer1@example.com", password: "viewer123", role: "viewer" },
+  // Define the user interface to fix TypeScript errors
+  interface AppUser {
+    id: string;
+    username: string;
+    email: string;
+    password: string;
+    fullName?: string;
+    role: string | null;
+  }
+
+  let appUsers: AppUser[] = [
+    { id: "1", username: "admin", email: "admin@example.com", password: "admin123", fullName: "Admin User", role: "admin" },
+    { id: "2", username: "editor1", email: "editor1@example.com", password: "editor123", fullName: "Editor One", role: "editor" },
+    { id: "3", username: "editor2", email: "editor2@example.com", password: "editor456", fullName: "Editor Two", role: "editor" },
+    { id: "4", username: "viewer1", email: "viewer1@example.com", password: "viewer123", fullName: "Viewer One", role: "viewer" },
     { id: "5", username: "user1", email: "user1@example.com", password: "user123", role: null }
   ];
 
@@ -1036,11 +1096,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mockUser = appUsers.find(u => u.username === username && u.password === password);
       
       if (mockUser) {
+        // Generate JWT token
+        const token = generateToken(mockUser);
+        
         return res.json({ 
           id: mockUser.id, 
           username: mockUser.username,
           email: mockUser.email,
-          role: mockUser.role
+          fullName: mockUser.fullName || "",
+          role: mockUser.role,
+          token
         });
       }
       
@@ -1051,9 +1116,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid username or password" });
       }
       
+      // Generate JWT token for storage-based users
+      const token = generateToken(user);
+      
       res.json({ 
         id: user.id, 
-        username: user.username 
+        username: user.username,
+        token
       });
     } catch (error) {
       res.status(500).json({ message: "Error during login" });
@@ -1088,20 +1157,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         appUsers.push(newUser);
         
+        // Generate JWT token for new user
+        const token = generateToken(newUser);
+        
         return res.status(201).json({ 
           id: newUser.id, 
           username: newUser.username,
           email: newUser.email,
-          role: newUser.role
+          role: newUser.role,
+          token
         });
       }
       
       // Otherwise use storage
       const newUser = await storage.createUser({ username, password });
       
+      // Generate JWT token for storage-based users
+      const token = generateToken(newUser);
+      
       res.status(201).json({ 
         id: newUser.id, 
-        username: newUser.username 
+        username: newUser.username,
+        token
       });
     } catch (error) {
       res.status(500).json({ message: "Error during registration" });
