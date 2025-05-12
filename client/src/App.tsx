@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import SchemaDesigner from "@/pages/schema";
+import WorkflowBuilder from "@/pages/workflows";
 
 // Lazy load other pages to improve initial load time
 import { lazy, Suspense } from "react";
@@ -21,17 +22,12 @@ function Router() {
           <FormBuilder />
         </Suspense>
       </Route>
+      <Route path="/workflows" component={WorkflowBuilder} />
       {/* Future routes will be added here */}
       <Route path="/dashboard">
         <div className="container mx-auto p-6">
           <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
           <p>Dashboard functionality coming soon.</p>
-        </div>
-      </Route>
-      <Route path="/workflows">
-        <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-bold mb-6">Workflow Builder</h1>
-          <p>Workflow Builder functionality coming soon.</p>
         </div>
       </Route>
       <Route path="/roles">
