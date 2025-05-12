@@ -125,7 +125,17 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
 
-  return { ...context, refreshing };
+  const loginWithGoogle = async () => {
+    try {
+      const response = await fetch('/api/auth/google');
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
+  };
+
+  return { ...context, refreshing, loginWithGoogle };
 }
 
 // Function to get the auth token for API requests

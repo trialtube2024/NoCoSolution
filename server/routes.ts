@@ -1191,9 +1191,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 }
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 
 const router = Router();
 const TOKEN_EXPIRY = '15m';
+
+const oauth2Client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${process.env.APP_URL}/api/auth/google/callback`
+);
+
+// Google OAuth routes
+router.get('/auth/google', (req, res) => {
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['profile', 'email']
+  });
+  res.json({ url });
+});
+
+router.get('/auth/google/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const { tokens } = await oauth2Client.getToken(code as string);
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = new OAuth2Client();
+    oauth2.setCredentials(tokens);
+    const userInfo = await oauth2.request({
+      url: 'https://www.googleapis.com/oauth2/v3/userinfo'
+    });
+
+    const user = {
+      id: userInfo.data.sub,
+      email: userInfo.data.email,
+      username: userInfo.data.name
+    };
+
+    const token = jwt.sign(user, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.redirect(`/?token=${token}`);
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.redirect('/auth/login?error=oauth_failed');
+  }
+});
 
 // Token refresh endpoint
 router.post('/auth/refresh', async (req, res) => {
