@@ -34,7 +34,7 @@ export default function Login() {
     },
   });
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const onSubmit = async (values: LoginFormValues & { remember?: boolean }) => {
     setIsLoading(true);
     setError(null);
 
@@ -55,7 +55,7 @@ export default function Login() {
       const userData = await response.json();
 
       // Call login function from auth context
-      login(userData);
+      login(userData, values.remember);
 
       // Redirect to dashboard
       setLocation("/dashboard");

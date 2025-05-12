@@ -95,7 +95,7 @@ export function useAuth() {
     // Set up token refresh interval (1 minute before expiry)
     const refreshInterval = setInterval(async () => {
       if (!context.user) return;
-      
+
       try {
         setRefreshing(true);
         const response = await fetch('/api/auth/refresh', {
