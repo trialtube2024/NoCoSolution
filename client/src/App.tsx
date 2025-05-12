@@ -11,6 +11,10 @@ import RoleManager from "@/pages/roles";
 import DataExplorer from "@/pages/data";
 import Dashboard from "@/pages/dashboard";
 
+// Auth pages
+import Login from "@/pages/auth/login";
+import Register from "@/pages/auth/register";
+
 // Lazy load other pages to improve initial load time
 import { lazy, Suspense } from "react";
 const FormBuilder = lazy(() => import("@/pages/forms"));
@@ -18,6 +22,11 @@ const FormBuilder = lazy(() => import("@/pages/forms"));
 function Router() {
   return (
     <Switch>
+      {/* Auth routes */}
+      <Route path="/auth/login" component={Login} />
+      <Route path="/auth/register" component={Register} />
+      
+      {/* App routes */}
       <Route path="/" component={Home} />
       <Route path="/schema" component={SchemaDesigner} />
       <Route path="/forms">
