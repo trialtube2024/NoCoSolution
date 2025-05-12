@@ -1,0 +1,20 @@
+{
+  "Mailer": "Mailer",
+  "Send email. You can use the variables in the upstream nodes as receivers, subject and content of the email.": "Send email by calling SMTP service. You can use the variables in the upstream nodes as receivers, subject and content of the email.",
+  "SMTP host": "Service host",
+  "Port": "Port",
+  "Secure": "Secure",
+  "User": "User",
+  "Password": "Password",
+  "From": "From",
+  "To": "To",
+  "CC": "CC",
+  "BCC": "BCC",
+  "Add email address": "Add email address",
+  "Subject": "Subject",
+  "Content": "Content",
+  "Content type": "Content type",
+  "Plain text": "Plain text",
+  "Ignore failed sending and continue workflow": "Ignore failed sending and continue workflow",
+  "In most cases, if using port 465, set it to true; otherwise, set it to false.": "In most cases, if using port 465, set it to true; otherwise, set it to false."
+}
