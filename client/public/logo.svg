@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="20" height="14" x="2" y="5" rx="2" />
+  <path d="M14 2v6" />
+  <path d="M10 2v6" />
+  <path d="M2 10h20" />
+  <path d="M5 14a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  <path d="M9 14a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  <path d="M13 14a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  <path d="M17 14a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+  <style>
+    svg {
+      stroke: #7c3aed;
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        stroke: #d4b5ff;
+      }
+    }
+  </style>
+</svg>
