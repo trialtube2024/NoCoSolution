@@ -1237,6 +1237,50 @@ router.get('/auth/google/callback', async (req, res) => {
   }
 });
 
+// GitHub OAuth routes
+router.get('/auth/github', (req, res) => {
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=user:email`;
+  res.json({ url: githubAuthUrl });
+});
+
+router.get('/auth/github/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const response = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code
+      })
+    });
+
+    const data = await response.json();
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${data.access_token}`
+      }
+    });
+
+    const githubUser = await userResponse.json();
+    const user = {
+      id: githubUser.id.toString(),
+      username: githubUser.login,
+      email: githubUser.email
+    };
+
+    const token = jwt.sign(user, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.redirect(`/?token=${token}`);
+  } catch (error) {
+    console.error('GitHub OAuth error:', error);
+    res.redirect('/auth/login?error=oauth_failed');
+  }
+});
+
 // Token refresh endpoint
 router.post('/auth/refresh', async (req, res) => {
   try {

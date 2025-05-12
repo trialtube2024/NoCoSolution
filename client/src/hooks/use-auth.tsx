@@ -135,7 +135,17 @@ export function useAuth() {
     }
   };
 
-  return { ...context, refreshing, loginWithGoogle };
+  const loginWithGithub = async () => {
+    try {
+      const response = await fetch('/api/auth/github');
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      console.error('GitHub login error:', error);
+    }
+  };
+
+  return { ...context, refreshing, loginWithGoogle, loginWithGithub };
 }
 
 // Function to get the auth token for API requests
