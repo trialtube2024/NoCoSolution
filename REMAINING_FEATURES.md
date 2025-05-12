@@ -10,19 +10,18 @@ NocoStudio currently has implemented:
 - Data Explorer for managing records
 - Dashboard with analytics and charts
 - Backend API endpoints for all main features
+- Authentication system with login, registration, and password reset
+- User profile management
 
 ## Remaining Features to Implement
 
-### 1. Authentication System
-- **Login Page**: Create a dedicated login page with username/password authentication
-- **Registration Page**: Allow new users to register
-- **Password Reset**: Implement password recovery functionality  
+### 1. Authentication System Improvements
 - **Token-based Authentication**: Implement JWT token-based auth for secure API requests
 - **Session Management**: Add automatic session timeout and renewal
+- **OAuth Integration**: Allow users to log in with Google, GitHub, etc.
 
 ### 2. User Management
-- **User Profile Page**: Allow users to view and edit their profiles
-- **User Settings**: Add preferences for notifications, UI theme, language
+- **User Preferences**: Add settings for notifications, UI theme, language
 - **Admin User Management**: Create an admin interface for managing users
 
 ### 3. Advanced Data Management

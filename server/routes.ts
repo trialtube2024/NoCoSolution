@@ -864,13 +864,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
       id: user.id,
       username: user.username,
       email: user.email,
+      fullName: user.fullName || "",
       role: user.role
     };
     
     res.json(safeUser);
   });
+  
+  app.patch("/api/users/:id", (req: Request, res: Response) => {
+    const { username, email, fullName } = req.body;
+    const userIndex = appUsers.findIndex(u => u.id === req.params.id);
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if username is already taken by another user
+    if (username && username !== appUsers[userIndex].username) {
+      const usernameExists = appUsers.some(u => u.username === username && u.id !== req.params.id);
+      if (usernameExists) {
+        return res.status(409).json({ message: "Username is already taken" });
+      }
+    }
+    
+    // Check if email is already taken by another user
+    if (email && email !== appUsers[userIndex].email) {
+      const emailExists = appUsers.some(u => u.email === email && u.id !== req.params.id);
+      if (emailExists) {
+        return res.status(409).json({ message: "Email is already taken" });
+      }
+    }
+    
+    // Update user
+    appUsers[userIndex] = {
+      ...appUsers[userIndex],
+      username: username || appUsers[userIndex].username,
+      email: email || appUsers[userIndex].email,
+      fullName: fullName !== undefined ? fullName : (appUsers[userIndex].fullName || "")
+    };
+    
+    // Remove sensitive information
+    const safeUser = {
+      id: appUsers[userIndex].id,
+      username: appUsers[userIndex].username,
+      email: appUsers[userIndex].email,
+      fullName: appUsers[userIndex].fullName || "",
+      role: appUsers[userIndex].role
+    };
+    
+    res.json(safeUser);
+  });
+  
+  app.post("/api/users/:id/change-password", (req: Request, res: Response) => {
+    const { currentPassword, newPassword } = req.body;
+    const user = appUsers.find(u => u.id === req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Verify current password
+    if (user.password !== currentPassword) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+    
+    // Update password
+    user.password = newPassword;
+    
+    res.status(200).json({ message: "Password changed successfully" });
+  });
 
-  // Auth routes (basic)
+  // Password reset tokens storage (in-memory for demo)
+  let passwordResetTokens: { [key: string]: { email: string, expiresAt: Date } } = {};
+
+  // Auth routes
+  app.post("/api/auth/forgot-password", (req: Request, res: Response) => {
+    const { email } = req.body;
+    
+    // Check if email exists
+    const user = appUsers.find(u => u.email === email);
+    
+    if (!user) {
+      // For security reasons, don't reveal if the email exists
+      return res.status(200).json({ 
+        message: "If your email is registered, you will receive a password reset link" 
+      });
+    }
+    
+    // Generate token
+    const token = Math.random().toString(36).substring(2, 15) + 
+                  Math.random().toString(36).substring(2, 15);
+    
+    // Set expiration (15 minutes)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+    
+    // Store token
+    passwordResetTokens[token] = {
+      email: user.email,
+      expiresAt
+    };
+    
+    // In a real application, send an email with the reset link
+    // For demo, we'll just log it
+    console.log(`Password reset link: http://localhost:5000/auth/reset-password?token=${token}`);
+    
+    res.status(200).json({ 
+      message: "If your email is registered, you will receive a password reset link" 
+    });
+  });
+
+  app.get("/api/auth/verify-reset-token", (req: Request, res: Response) => {
+    const { token } = req.query;
+    
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: "Token is required" });
+    }
+    
+    const tokenData = passwordResetTokens[token];
+    
+    if (!tokenData) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    
+    if (new Date() > tokenData.expiresAt) {
+      delete passwordResetTokens[token];
+      return res.status(400).json({ message: "Token has expired" });
+    }
+    
+    res.status(200).json({ message: "Token is valid" });
+  });
+
+  app.post("/api/auth/reset-password", (req: Request, res: Response) => {
+    const { token, password } = req.body;
+    
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and password are required" });
+    }
+    
+    const tokenData = passwordResetTokens[token];
+    
+    if (!tokenData) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    
+    if (new Date() > tokenData.expiresAt) {
+      delete passwordResetTokens[token];
+      return res.status(400).json({ message: "Token has expired" });
+    }
+    
+    // Update user's password
+    const user = appUsers.find(u => u.email === tokenData.email);
+    
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    
+    user.password = password;
+    
+    // Remove used token
+    delete passwordResetTokens[token];
+    
+    res.status(200).json({ message: "Password has been reset successfully" });
+  });
+
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     const { username, password } = req.body;
     
