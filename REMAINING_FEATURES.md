@@ -21,8 +21,8 @@ NocoStudio currently has implemented:
 
 ### 1. Authentication System Improvements
 - ✅ **Token-based Authentication**: JWT token-based auth implemented for secure API requests
-- **Token Refresh**: Implement automatic token refresh mechanism
-- **Remember Me**: Add "remember me" functionality for extended sessions 
+- ✅ **Token Refresh**: Implement automatic token refresh mechanism
+- ✅ **Remember Me**: Add "remember me" functionality for extended sessions 
 - **Session Management**: Add automatic session timeout and renewal
 - **OAuth Integration**: Allow users to log in with Google, GitHub, etc.
 

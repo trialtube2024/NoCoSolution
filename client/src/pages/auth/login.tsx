@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Form validation schema
 const loginSchema = z.object({
@@ -24,7 +25,7 @@ export default function Login() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -36,7 +37,7 @@ export default function Login() {
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -45,17 +46,17 @@ export default function Login() {
         },
         body: JSON.stringify(values),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Login failed");
       }
-      
+
       const userData = await response.json();
-      
+
       // Call login function from auth context
       login(userData);
-      
+
       // Redirect to dashboard
       setLocation("/dashboard");
     } catch (err) {
@@ -81,7 +82,7 @@ export default function Login() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -93,7 +94,7 @@ export default function Login() {
                 <p className="text-sm text-red-500">{form.formState.errors.username.message}</p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
@@ -116,7 +117,11 @@ export default function Login() {
                 <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
               )}
             </div>
-            
+
+            <div className="flex items-center space-x-2 mb-4">
+              <Checkbox id="remember" name="remember" />
+              <Label htmlFor="remember">Remember me</Label>
+            </div>
             <Button className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>

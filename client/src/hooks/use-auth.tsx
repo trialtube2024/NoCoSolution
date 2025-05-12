@@ -62,9 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading, location, setLocation]);
 
-  const login = (userData: User) => {
-    // Save user data to localStorage
-    localStorage.setItem("user", JSON.stringify(userData));
+  const login = (userData: User, remember: boolean = false) => {
+    // Save user data to storage based on remember preference
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem("user", JSON.stringify(userData));
     setUser(userData);
   };
 

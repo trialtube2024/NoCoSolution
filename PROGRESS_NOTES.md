@@ -12,6 +12,7 @@
 - ✅ Navigation component that shows different options based on auth status
 - ✅ Token refresh mechanism implemented with automatic refresh before expiry
 - ✅ Session handling with token expiration
+- ✅ Remember me functionality for persistent sessions
 
 ### Core Features
 - ✅ Schema Designer module (basic implementation)
