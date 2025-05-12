@@ -88,12 +88,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    // Set up token refresh interval (1 minute before expiry)
+    const refreshInterval = setInterval(async () => {
+      if (!context.user) return;
+      
+      try {
+        setRefreshing(true);
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Token refresh failed');
+
+        const { token } = await response.json();
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({ ...storedUser, token }));
+      } catch (error) {
+        console.error('Token refresh error:', error);
+        context.logout();
+      } finally {
+        setRefreshing(false);
+      }
+    }, 14 * 60 * 1000); // Refresh every 14 minutes (1 minute before 15-minute expiry)
+
+    return () => clearInterval(refreshInterval);
+  }, [context.user]);
 
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
 
-  return context;
+  return { ...context, refreshing };
 }
 
 // Function to get the auth token for API requests

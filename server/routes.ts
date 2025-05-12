@@ -1195,7 +1195,30 @@ import jwt from 'jsonwebtoken';
 const router = Router();
 const TOKEN_EXPIRY = '15m';
 
-// Add refresh token endpoint
+// Token refresh endpoint
+router.post('/auth/refresh', async (req, res) => {
+  try {
+    const currentToken = req.headers.authorization?.split(' ')[1];
+    if (!currentToken) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    // Verify current token
+    try {
+      const decoded = jwt.verify(currentToken, JWT_SECRET) as { id: string; exp: number };
+      
+      // Generate new token
+      const newToken = jwt.sign({ id: decoded.id }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+      
+      return res.json({ token: newToken });
+    } catch (error) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 router.post('/auth/refresh', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
