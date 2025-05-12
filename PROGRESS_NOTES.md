@@ -14,9 +14,13 @@
    - OAuth provider selection UI
 
 ## In Progress
-- Password Reset Flow
-- User Profile Management
+- Password Reset Flow (Forgot Password page completed)
+- User Profile Management 
 - Email Verification System
+
+## Recent Updates
+- Added forgot password page with email submission
+- Implemented security measures for password reset requests
 
 ## Notes
 - Remember Me feature stores auth data in localStorage for persistent sessions

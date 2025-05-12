@@ -20,9 +20,9 @@ NocoStudio currently has implemented:
 ## Remaining Features to Implement
 
 1. Password Reset Flow
-   - Forgot password page
+   - ✓ Forgot password page
    - Reset password email
-   - Password reset form
+   - Reset password form
    - Email verification
 
 2. User Profile Management
