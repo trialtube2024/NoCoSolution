@@ -1,0 +1,202 @@
+<div class="settings-container">
+  <div class="settings-header">
+    <h1>System Settings</h1>
+    <div class="header-actions">
+      <button mat-icon-button (click)="refreshSettings()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading" class="settings-content">
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <mat-tab-group [(selectedIndex)]="activeTab">
+          <mat-tab label="General">
+            <div class="tab-content">
+              <form [formGroup]="generalSettingsForm" (ngSubmit)="saveGeneralSettings()">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Application Name</mat-label>
+                  <input matInput formControlName="appName" placeholder="My NocoStudio App">
+                  <mat-error *ngIf="generalSettingsForm.get('appName')?.hasError('required')">
+                    Application name is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Logo URL</mat-label>
+                  <input matInput formControlName="logo" placeholder="https://example.com/logo.png">
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Theme</mat-label>
+                  <mat-select formControlName="theme">
+                    <mat-option value="light">Light</mat-option>
+                    <mat-option value="dark">Dark</mat-option>
+                    <mat-option value="system">System Default</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Locale</mat-label>
+                  <mat-select formControlName="locale">
+                    <mat-option value="en-US">English (US)</mat-option>
+                    <mat-option value="en-GB">English (UK)</mat-option>
+                    <mat-option value="fr-FR">French</mat-option>
+                    <mat-option value="de-DE">German</mat-option>
+                    <mat-option value="es-ES">Spanish</mat-option>
+                    <mat-option value="ja-JP">Japanese</mat-option>
+                    <mat-option value="zh-CN">Chinese (Simplified)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="form-row">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date Format</mat-label>
+                    <mat-select formControlName="dateFormat">
+                      <mat-option value="MM/DD/YYYY">MM/DD/YYYY</mat-option>
+                      <mat-option value="DD/MM/YYYY">DD/MM/YYYY</mat-option>
+                      <mat-option value="YYYY-MM-DD">YYYY-MM-DD</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Time Format</mat-label>
+                    <mat-select formControlName="timeFormat">
+                      <mat-option value="h:mm A">12-hour (1:30 PM)</mat-option>
+                      <mat-option value="HH:mm">24-hour (13:30)</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Default Role for New Users</mat-label>
+                  <mat-select formControlName="defaultRole">
+                    <mat-option *ngFor="let role of roles" [value]="role.id">
+                      {{ role.displayName }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="form-actions">
+                  <button mat-raised-button color="primary" type="submit" [disabled]="generalSettingsForm.invalid">
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Plugins">
+            <div class="tab-content">
+              <div class="plugins-list">
+                <mat-card *ngFor="let plugin of plugins" appearance="outlined" class="plugin-card">
+                  <mat-card-header>
+                    <mat-card-title>{{ plugin.name }}</mat-card-title>
+                    <mat-card-subtitle>v{{ plugin.version }}</mat-card-subtitle>
+                    <mat-slide-toggle 
+                      [checked]="plugin.enabled" 
+                      (change)="togglePlugin(plugin)"
+                      class="plugin-toggle">
+                    </mat-slide-toggle>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <p *ngIf="plugin.description">{{ plugin.description }}</p>
+                    <p *ngIf="!plugin.description" class="no-description">No description available</p>
+                    
+                    <mat-expansion-panel *ngIf="plugin.enabled && plugin.settings" class="plugin-settings">
+                      <mat-expansion-panel-header>
+                        <mat-panel-title>Plugin Settings</mat-panel-title>
+                      </mat-expansion-panel-header>
+                      
+                      <div class="plugin-settings-form">
+                        <!-- This would dynamically generate form based on plugin.settings schema -->
+                        <p>Plugin settings configuration UI would be rendered here</p>
+                        <button mat-button color="primary" (click)="updatePluginSettings(plugin, {})">
+                          Save Settings
+                        </button>
+                      </div>
+                    </mat-expansion-panel>
+                  </mat-card-content>
+                </mat-card>
+                
+                <!-- Empty state -->
+                <div *ngIf="plugins.length === 0" class="empty-plugins">
+                  <mat-icon>extension</mat-icon>
+                  <h2>No plugins available</h2>
+                  <p>Plugins can extend the functionality of your application</p>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="API Tokens">
+            <div class="tab-content">
+              <div class="api-tokens-list">
+                <p>API token management would go here</p>
+                <div class="create-token">
+                  <button mat-raised-button color="primary">
+                    <mat-icon>add</mat-icon> Create API Token
+                  </button>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Users">
+            <div class="tab-content">
+              <div class="users-list">
+                <p>User management would go here</p>
+                <div class="create-user">
+                  <button mat-raised-button color="primary">
+                    <mat-icon>person_add</mat-icon> Add User
+                  </button>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="System Info">
+            <div class="tab-content">
+              <div class="system-info">
+                <h3>NocoStudio Information</h3>
+                <div class="info-item">
+                  <strong>Version:</strong> 1.0.0
+                </div>
+                <div class="info-item">
+                  <strong>Build:</strong> 2023.09.12
+                </div>
+                <div class="info-item">
+                  <strong>License:</strong> Community Edition
+                </div>
+                
+                <h3>System Environment</h3>
+                <div class="info-item">
+                  <strong>Server Operating System:</strong> Linux
+                </div>
+                <div class="info-item">
+                  <strong>Web Server:</strong> Kestrel
+                </div>
+                <div class="info-item">
+                  <strong>Database:</strong> SQL Server
+                </div>
+                
+                <h3>Support</h3>
+                <div class="info-item">
+                  <strong>Documentation:</strong> <a href="https://docs.nocostudio.com" target="_blank">https://docs.nocostudio.com</a>
+                </div>
+                <div class="info-item">
+                  <strong>Support:</strong> <a href="mailto:support@nocostudio.com">support@nocostudio.com</a>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

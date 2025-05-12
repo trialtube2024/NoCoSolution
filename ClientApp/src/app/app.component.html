@@ -1,0 +1,18 @@
+<ng-container *ngIf="isLoggedIn; else loginTemplate">
+  <mat-sidenav-container class="app-container">
+    <mat-sidenav #sidenav mode="over" [mode]="isMobile ? 'over' : 'side'" [opened]="!isMobile" class="sidenav">
+      <app-sidebar></app-sidebar>
+    </mat-sidenav>
+    
+    <mat-sidenav-content>
+      <app-header (toggleSideNav)="toggleSidenav()"></app-header>
+      <main>
+        <router-outlet></router-outlet>
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</ng-container>
+
+<ng-template #loginTemplate>
+  <router-outlet></router-outlet>
+</ng-template>

@@ -1,0 +1,279 @@
+<div class="schema-designer-container">
+  <div class="designer-header">
+    <h1>Schema Designer</h1>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="showNewSchemaForm = true" *ngIf="!showNewSchemaForm">
+        <mat-icon>add</mat-icon> New Schema
+      </button>
+      <button mat-icon-button (click)="refreshSchemas()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loadingSchemas" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div *ngIf="!loadingSchemas" class="designer-content">
+    <!-- Schema Form -->
+    <div *ngIf="showNewSchemaForm" class="form-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ editMode ? 'Edit Schema' : 'New Schema' }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="schemaForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g., customer_management">
+              <mat-hint>Use lowercase letters, numbers, and underscores only</mat-hint>
+              <mat-error *ngIf="schemaForm.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="schemaForm.get('name')?.hasError('pattern')">Name can only contain lowercase letters, numbers, and underscores</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Display Name</mat-label>
+              <input matInput formControlName="displayName" placeholder="e.g., Customer Management">
+              <mat-error *ngIf="schemaForm.get('displayName')?.hasError('required')">Display name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe the purpose of this schema"></textarea>
+            </mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelForm()">Cancel</button>
+          <button mat-raised-button color="primary" *ngIf="!editMode" (click)="createSchema()" [disabled]="schemaForm.invalid">Create</button>
+          <button mat-raised-button color="primary" *ngIf="editMode" (click)="updateSchema()" [disabled]="schemaForm.invalid">Update</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Collection Form -->
+    <div *ngIf="showNewCollectionForm && selectedSchema" class="form-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ editMode ? 'Edit Collection' : 'New Collection' }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="collectionForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g., customers">
+              <mat-hint>Use lowercase letters, numbers, and underscores only</mat-hint>
+              <mat-error *ngIf="collectionForm.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="collectionForm.get('name')?.hasError('pattern')">Name can only contain lowercase letters, numbers, and underscores</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Display Name</mat-label>
+              <input matInput formControlName="displayName" placeholder="e.g., Customers">
+              <mat-error *ngIf="collectionForm.get('displayName')?.hasError('required')">Display name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe this collection"></textarea>
+            </mat-form-field>
+
+            <mat-checkbox formControlName="timestamps">Include timestamps (createdAt, updatedAt)</mat-checkbox>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelForm()">Cancel</button>
+          <button mat-raised-button color="primary" *ngIf="!editMode" (click)="createCollection()" [disabled]="collectionForm.invalid">Create</button>
+          <button mat-raised-button color="primary" *ngIf="editMode" (click)="updateCollection()" [disabled]="collectionForm.invalid">Update</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Field Form -->
+    <div *ngIf="showNewFieldForm && selectedCollection" class="form-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ editMode ? 'Edit Field' : 'New Field' }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="fieldForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g., first_name">
+              <mat-hint>Use lowercase letters, numbers, and underscores only</mat-hint>
+              <mat-error *ngIf="fieldForm.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="fieldForm.get('name')?.hasError('pattern')">Name can only contain lowercase letters, numbers, and underscores</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Display Name</mat-label>
+              <input matInput formControlName="displayName" placeholder="e.g., First Name">
+              <mat-error *ngIf="fieldForm.get('displayName')?.hasError('required')">Display name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe this field"></textarea>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Field Type</mat-label>
+              <mat-select formControlName="type">
+                <mat-option *ngFor="let type of fieldTypes" [value]="type">{{ type }}</mat-option>
+              </mat-select>
+              <mat-error *ngIf="fieldForm.get('type')?.hasError('required')">Field type is required</mat-error>
+            </mat-form-field>
+
+            <!-- Additional fields based on field type -->
+            <ng-container *ngIf="fieldForm.get('type')?.value === 'enum'">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Options (comma separated)</mat-label>
+                <input matInput formControlName="options" placeholder="e.g., option1,option2,option3">
+              </mat-form-field>
+            </ng-container>
+
+            <ng-container *ngIf="fieldForm.get('type')?.value === 'relation'">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Relation Type</mat-label>
+                <mat-select formControlName="relationType">
+                  <mat-option *ngFor="let type of relationTypes" [value]="type">{{ type }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Target Collection</mat-label>
+                <mat-select formControlName="targetCollection">
+                  <mat-option *ngFor="let collection of selectedSchema?.collections" [value]="collection.name">{{ collection.displayName }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </ng-container>
+
+            <div class="field-options">
+              <mat-checkbox formControlName="required">Required</mat-checkbox>
+              <mat-checkbox formControlName="unique">Unique</mat-checkbox>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Default Value</mat-label>
+              <input matInput formControlName="defaultValue" placeholder="Default value">
+            </mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelForm()">Cancel</button>
+          <button mat-raised-button color="primary" *ngIf="!editMode" (click)="addField()" [disabled]="fieldForm.invalid">Add Field</button>
+          <button mat-raised-button color="primary" *ngIf="editMode" (click)="updateField()" [disabled]="fieldForm.invalid">Update Field</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" *ngIf="!showNewSchemaForm && !showNewCollectionForm && !showNewFieldForm">
+      <div class="schemas-panel">
+        <div class="panel-header">
+          <h2>Schemas</h2>
+        </div>
+        
+        <mat-list>
+          <mat-list-item *ngFor="let schema of schemas" 
+                         [class.selected]="selectedSchema?.id === schema.id"
+                         (click)="selectSchema(schema)">
+            <div matListItemTitle>{{ schema.displayName }}</div>
+            <div matListItemLine>{{ schema.collections.length }} collections</div>
+            <div matListItemMeta>
+              <button mat-icon-button (click)="deleteSchema(schema); $event.stopPropagation()">
+                <mat-icon>delete</mat-icon>
+              </button>
+              <button mat-icon-button (click)="editMode = true; showNewSchemaForm = true; schemaForm.patchValue(schema); $event.stopPropagation()">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+          </mat-list-item>
+        </mat-list>
+        
+        <div *ngIf="schemas.length === 0" class="empty-state">
+          <p>No schemas found</p>
+          <button mat-stroked-button color="primary" (click)="showNewSchemaForm = true">
+            <mat-icon>add</mat-icon> Create Schema
+          </button>
+        </div>
+      </div>
+      
+      <div class="collections-panel" *ngIf="selectedSchema">
+        <div class="panel-header">
+          <h2>Collections: {{ selectedSchema.displayName }}</h2>
+          <button mat-raised-button color="primary" (click)="showNewCollectionForm = true">
+            <mat-icon>add</mat-icon> Add Collection
+          </button>
+        </div>
+        
+        <mat-list>
+          <mat-list-item *ngFor="let collection of selectedSchema.collections" 
+                         [class.selected]="selectedCollection?.id === collection.id"
+                         (click)="selectCollection(collection)">
+            <div matListItemTitle>{{ collection.displayName }}</div>
+            <div matListItemLine>{{ collection.fields.length }} fields</div>
+            <div matListItemMeta>
+              <button mat-icon-button (click)="deleteCollection(collection); $event.stopPropagation()">
+                <mat-icon>delete</mat-icon>
+              </button>
+              <button mat-icon-button (click)="editMode = true; showNewCollectionForm = true; collectionForm.patchValue(collection); $event.stopPropagation()">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+          </mat-list-item>
+        </mat-list>
+        
+        <div *ngIf="selectedSchema.collections.length === 0" class="empty-state">
+          <p>No collections in this schema</p>
+          <button mat-stroked-button color="primary" (click)="showNewCollectionForm = true">
+            <mat-icon>add</mat-icon> Create Collection
+          </button>
+        </div>
+      </div>
+      
+      <div class="fields-panel" *ngIf="selectedCollection">
+        <div class="panel-header">
+          <h2>Fields: {{ selectedCollection.displayName }}</h2>
+          <button mat-raised-button color="primary" (click)="showNewFieldForm = true; fieldForm.reset(); fieldForm.patchValue({ type: 'string' })">
+            <mat-icon>add</mat-icon> Add Field
+          </button>
+        </div>
+        
+        <div cdkDropList (cdkDropListDropped)="onFieldDrop($event)" class="fields-list">
+          <mat-card appearance="outlined" cdkDrag *ngFor="let field of selectedCollection.fields" class="field-card">
+            <mat-card-header>
+              <mat-card-title>{{ field.displayName }}</mat-card-title>
+              <mat-card-subtitle>{{ field.name }} ({{ field.type }})</mat-card-subtitle>
+              <div class="field-actions">
+                <button mat-icon-button (click)="editField(field)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="deleteField(field)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </mat-card-header>
+            <mat-card-content>
+              <p *ngIf="field.description">{{ field.description }}</p>
+              <div class="field-badges">
+                <span class="badge" *ngIf="field.required">Required</span>
+                <span class="badge" *ngIf="field.unique">Unique</span>
+                <span class="badge" *ngIf="field.defaultValue">Default: {{ field.defaultValue }}</span>
+                <span class="badge" *ngIf="field.type === 'relation'">Target: {{ field.targetCollection }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
+        <div *ngIf="selectedCollection.fields.length === 0" class="empty-state">
+          <p>No fields in this collection</p>
+          <button mat-stroked-button color="primary" (click)="showNewFieldForm = true; fieldForm.reset(); fieldForm.patchValue({ type: 'string' })">
+            <mat-icon>add</mat-icon> Add Field
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

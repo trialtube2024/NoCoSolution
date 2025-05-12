@@ -1,0 +1,128 @@
+<div class="login-container">
+  <div class="login-card-container">
+    <mat-card appearance="outlined" class="login-card">
+      <mat-card-header>
+        <div class="login-logo">
+          <h1>NocoStudio</h1>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-toggle">
+          <button mat-button 
+                 [class.active]="isLoginMode" 
+                 (click)="isLoginMode = true"
+                 [disabled]="loading">
+            Login
+          </button>
+          <button mat-button 
+                 [class.active]="!isLoginMode" 
+                 (click)="isLoginMode = false"
+                 [disabled]="loading">
+            Register
+          </button>
+        </div>
+
+        <!-- Login Form -->
+        <form *ngIf="isLoginMode" [formGroup]="loginForm" (ngSubmit)="login()" class="login-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" placeholder="Username">
+            <mat-icon matPrefix>person</mat-icon>
+            <mat-error *ngIf="loginForm.get('username')?.hasError('required')">
+              Username is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Password</mat-label>
+            <input matInput type="password" formControlName="password" placeholder="Password">
+            <mat-icon matPrefix>lock</mat-icon>
+            <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+              Password is required
+            </mat-error>
+            <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">
+              Password must be at least 6 characters
+            </mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid || loading" class="full-width">
+              <mat-icon *ngIf="!loading">login</mat-icon>
+              <mat-spinner *ngIf="loading" diameter="24"></mat-spinner>
+              Login
+            </button>
+          </div>
+
+          <div class="additional-options">
+            <a mat-button color="primary" class="full-width">Forgot Password?</a>
+          </div>
+        </form>
+
+        <!-- Register Form -->
+        <form *ngIf="!isLoginMode" [formGroup]="registerForm" (ngSubmit)="register()" class="register-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" placeholder="Username">
+            <mat-icon matPrefix>person</mat-icon>
+            <mat-error *ngIf="registerForm.get('username')?.hasError('required')">
+              Username is required
+            </mat-error>
+            <mat-error *ngIf="registerForm.get('username')?.hasError('pattern')">
+              Username can only contain letters, numbers, and underscores
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="Email">
+            <mat-icon matPrefix>email</mat-icon>
+            <mat-error *ngIf="registerForm.get('email')?.hasError('required')">
+              Email is required
+            </mat-error>
+            <mat-error *ngIf="registerForm.get('email')?.hasError('email')">
+              Please enter a valid email address
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Password</mat-label>
+            <input matInput type="password" formControlName="password" placeholder="Password">
+            <mat-icon matPrefix>lock</mat-icon>
+            <mat-error *ngIf="registerForm.get('password')?.hasError('required')">
+              Password is required
+            </mat-error>
+            <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">
+              Password must be at least 6 characters
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Confirm Password</mat-label>
+            <input matInput type="password" formControlName="confirmPassword" placeholder="Confirm Password">
+            <mat-icon matPrefix>lock</mat-icon>
+            <mat-error *ngIf="registerForm.get('confirmPassword')?.hasError('required')">
+              Please confirm your password
+            </mat-error>
+          </mat-form-field>
+
+          <mat-error *ngIf="registerForm.hasError('passwordMismatch')" class="password-mismatch">
+            Passwords do not match
+          </mat-error>
+
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="submit" [disabled]="registerForm.invalid || loading" class="full-width">
+              <mat-icon *ngIf="!loading">person_add</mat-icon>
+              <mat-spinner *ngIf="loading" diameter="24"></mat-spinner>
+              Register
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="login-footer">
+      <p>NocoStudio - Low-code platform for building business applications</p>
+      <p>© 2023 NocoStudio. All rights reserved.</p>
+    </div>
+  </div>
+</div>

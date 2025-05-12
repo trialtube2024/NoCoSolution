@@ -1,0 +1,33 @@
+<div class="sidebar-container">
+  <div class="sidebar-header">
+    <div class="logo">
+      <h1>NocoStudio</h1>
+    </div>
+  </div>
+
+  <div class="sidebar-user" *ngIf="currentUser">
+    <div class="user-avatar">
+      <mat-icon>account_circle</mat-icon>
+    </div>
+    <div class="user-info">
+      <p class="user-name">{{ currentUser.firstName }} {{ currentUser.lastName }}</p>
+      <p class="user-email">{{ currentUser.email }}</p>
+    </div>
+  </div>
+
+  <mat-nav-list class="sidebar-nav">
+    <a mat-list-item *ngFor="let item of filteredNavItems" 
+       [routerLink]="item.route" 
+       routerLinkActive="active">
+      <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+      <span matListItemTitle>{{ item.label }}</span>
+    </a>
+  </mat-nav-list>
+
+  <div class="sidebar-footer">
+    <button mat-raised-button color="warn" (click)="logout()">
+      <mat-icon>exit_to_app</mat-icon>
+      Logout
+    </button>
+  </div>
+</div>

@@ -1,0 +1,246 @@
+<div class="form-builder-container">
+  <div class="builder-header">
+    <h1>Form Builder</h1>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="createNewForm()">
+        <mat-icon>add</mat-icon> New Form
+      </button>
+      <button mat-icon-button (click)="loadForms()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading" class="builder-content">
+    <!-- Form Details -->
+    <div *ngIf="showFormDetails" class="form-details-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ editMode ? 'Edit Form' : 'New Form' }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="formDetailsForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g., customer_form">
+              <mat-hint>Use lowercase letters, numbers, and underscores only</mat-hint>
+              <mat-error *ngIf="formDetailsForm.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="formDetailsForm.get('name')?.hasError('pattern')">Name can only contain lowercase letters, numbers, and underscores</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Display Name</mat-label>
+              <input matInput formControlName="displayName" placeholder="e.g., Customer Form">
+              <mat-error *ngIf="formDetailsForm.get('displayName')?.hasError('required')">Display name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe the purpose of this form"></textarea>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Collection</mat-label>
+              <mat-select formControlName="collection" (selectionChange)="onCollectionChange()">
+                <mat-option *ngFor="let collection of collections" [value]="collection.name">
+                  {{ collection.displayName }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="formDetailsForm.get('collection')?.hasError('required')">Collection is required</mat-error>
+            </mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelForm()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveForm()" [disabled]="formDetailsForm.invalid">
+            {{ editMode ? 'Update' : 'Create' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <!-- Field Selection and Form Preview -->
+      <div *ngIf="selectedCollection" class="form-builder-layout">
+        <div class="available-fields">
+          <mat-card appearance="outlined">
+            <mat-card-header>
+              <mat-card-title>Available Fields</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <mat-list>
+                <mat-list-item *ngFor="let field of fields" (click)="addFieldToForm(field)" [class.disabled]="formFields.some(f => f.fieldId === field.id)">
+                  <div matListItemTitle>{{ field.displayName }}</div>
+                  <div matListItemLine>{{ field.type }}</div>
+                  <button mat-icon-button matListItemMeta>
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </mat-list-item>
+              </mat-list>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <div class="form-preview">
+          <mat-card appearance="outlined">
+            <mat-card-header>
+              <mat-card-title>Form Layout</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div cdkDropList (cdkDropListDropped)="onFieldDrop($event)" class="form-fields-list">
+                <div *ngIf="formFields.length === 0" class="empty-form">
+                  <p>Drag fields here to build your form</p>
+                </div>
+                
+                <div cdkDrag *ngFor="let formField of formFields" class="form-field-item">
+                  <div class="field-drag-handle" cdkDragHandle>
+                    <mat-icon>drag_indicator</mat-icon>
+                  </div>
+                  <div class="field-content">
+                    <div class="field-header">
+                      <span class="field-name">{{ getFieldById(formField.fieldId)?.displayName }}</span>
+                      <span class="field-type">{{ getFieldById(formField.fieldId)?.type }}</span>
+                    </div>
+                    <div class="field-settings">
+                      <span *ngIf="formField.settings.required" class="field-badge">Required</span>
+                      <span *ngIf="formField.settings.disabled" class="field-badge">Disabled</span>
+                      <span *ngIf="formField.settings.hidden" class="field-badge">Hidden</span>
+                    </div>
+                  </div>
+                  <div class="field-actions">
+                    <button mat-icon-button (click)="removeFieldFromForm(formField)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card appearance="outlined" class="form-actions-card">
+            <mat-card-header>
+              <mat-card-title>Form Actions</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <form [formGroup]="actionForm" class="action-form">
+                <div class="action-form-row">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Type</mat-label>
+                    <mat-select formControlName="type">
+                      <mat-option value="submit">Submit</mat-option>
+                      <mat-option value="cancel">Cancel</mat-option>
+                      <mat-option value="custom">Custom</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Label</mat-label>
+                    <input matInput formControlName="label">
+                  </mat-form-field>
+                </div>
+
+                <div class="action-form-row">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Position</mat-label>
+                    <mat-select formControlName="position">
+                      <mat-option value="start">Start</mat-option>
+                      <mat-option value="end">End</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Style</mat-label>
+                    <mat-select formControlName="style">
+                      <mat-option value="primary">Primary</mat-option>
+                      <mat-option value="secondary">Secondary</mat-option>
+                      <mat-option value="accent">Accent</mat-option>
+                      <mat-option value="warn">Warn</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <div class="action-form-row" *ngIf="actionForm.get('type')?.value === 'custom'">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Handler</mat-label>
+                    <textarea matInput formControlName="handler" placeholder="JavaScript code or workflow ID"></textarea>
+                  </mat-form-field>
+                </div>
+
+                <button mat-raised-button color="primary" [disabled]="actionForm.invalid" (click)="addAction()">
+                  Add Action
+                </button>
+              </form>
+
+              <div cdkDropList (cdkDropListDropped)="onActionDrop($event)" class="actions-list">
+                <div cdkDrag *ngFor="let action of formActions" class="action-item">
+                  <div class="action-drag-handle" cdkDragHandle>
+                    <mat-icon>drag_indicator</mat-icon>
+                  </div>
+                  <div class="action-content">
+                    <span class="action-label">{{ action.label }}</span>
+                    <span class="action-type">{{ action.type }}</span>
+                    <span class="action-position">{{ action.position }}</span>
+                  </div>
+                  <div class="action-actions">
+                    <button mat-icon-button (click)="removeAction(action)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forms List -->
+    <div *ngIf="!showFormDetails" class="forms-list-container">
+      <div class="forms-grid">
+        <mat-card *ngFor="let form of forms" appearance="outlined" class="form-card">
+          <mat-card-header>
+            <mat-card-title>{{ form.displayName }}</mat-card-title>
+            <mat-card-subtitle>{{ form.collection }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p *ngIf="form.description">{{ form.description }}</p>
+            <p *ngIf="!form.description" class="no-description">No description</p>
+            <div class="form-stats">
+              <div class="stat">
+                <span class="stat-value">{{ form.fields.length }}</span>
+                <span class="stat-label">Fields</span>
+              </div>
+              <div class="stat">
+                <span class="stat-value">{{ form.actions.length }}</span>
+                <span class="stat-label">Actions</span>
+              </div>
+            </div>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-icon-button (click)="deleteForm(form)">
+              <mat-icon>delete</mat-icon>
+            </button>
+            <button mat-icon-button (click)="editForm(form)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-button color="primary" (click)="selectForm(form)">
+              Select
+            </button>
+          </mat-card-actions>
+        </mat-card>
+        
+        <!-- Empty state -->
+        <div *ngIf="forms.length === 0" class="empty-forms">
+          <mat-icon>dynamic_form</mat-icon>
+          <h2>No forms created yet</h2>
+          <p>Create your first form to get started</p>
+          <button mat-raised-button color="primary" (click)="createNewForm()">
+            <mat-icon>add</mat-icon> Create Form
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

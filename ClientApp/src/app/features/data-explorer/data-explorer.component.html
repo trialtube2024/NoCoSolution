@@ -1,0 +1,263 @@
+<div class="data-explorer-container">
+  <div class="explorer-header">
+    <h1>Data Explorer</h1>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" *ngIf="selectedCollection && !showRecordForm" (click)="createRecord()">
+        <mat-icon>add</mat-icon> New Record
+      </button>
+      <button mat-icon-button (click)="refreshData()" *ngIf="selectedCollection">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading" class="explorer-content">
+    <!-- Collection Selection Panel -->
+    <div *ngIf="!selectedCollection || showRecordForm" class="collections-panel">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Collections</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Search Collections</mat-label>
+            <input matInput placeholder="Type to search...">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <mat-accordion>
+            <mat-expansion-panel *ngFor="let schema of schemas">
+              <mat-expansion-panel-header>
+                <mat-panel-title>{{ schema.displayName }}</mat-panel-title>
+                <mat-panel-description>{{ schema.collections.length }} collections</mat-panel-description>
+              </mat-expansion-panel-header>
+              
+              <mat-nav-list>
+                <a mat-list-item *ngFor="let collection of schema.collections" (click)="selectCollection(collection)">
+                  {{ collection.displayName }}
+                  <span class="collection-field-count">{{ collection.fields.length }} fields</span>
+                </a>
+              </mat-nav-list>
+            </mat-expansion-panel>
+          </mat-accordion>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Record Form -->
+    <div *ngIf="showRecordForm && selectedCollection" class="record-form-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ editMode ? 'Edit Record' : 'New Record' }}</mat-card-title>
+          <mat-card-subtitle>{{ selectedCollection.displayName }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="recordForm">
+            <div *ngFor="let field of selectedCollection.fields">
+              <ng-container [ngSwitch]="field.type">
+                <!-- Text field -->
+                <mat-form-field *ngSwitchCase="'string'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Text area -->
+                <mat-form-field *ngSwitchCase="'text'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <textarea matInput [formControlName]="field.name" [placeholder]="field.displayName" rows="3"></textarea>
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Number field -->
+                <mat-form-field *ngSwitchCase="'number'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput type="number" [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Integer field -->
+                <mat-form-field *ngSwitchCase="'integer'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput type="number" step="1" [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Decimal field -->
+                <mat-form-field *ngSwitchCase="'decimal'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput type="number" step="0.01" [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Boolean field -->
+                <div *ngSwitchCase="'boolean'" class="boolean-field">
+                  <mat-checkbox [formControlName]="field.name">{{ field.displayName }}</mat-checkbox>
+                </div>
+
+                <!-- Date field -->
+                <mat-form-field *ngSwitchCase="'date'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput [matDatepicker]="picker" [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                  <mat-datepicker #picker></mat-datepicker>
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Enum field -->
+                <mat-form-field *ngSwitchCase="'enum'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <mat-select [formControlName]="field.name">
+                    <mat-option *ngFor="let option of field.options" [value]="option.value">
+                      {{ option.label }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Email field -->
+                <mat-form-field *ngSwitchCase="'email'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput type="email" [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Password field -->
+                <mat-form-field *ngSwitchCase="'password'" appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput type="password" [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Default for other field types -->
+                <mat-form-field *ngSwitchDefault appearance="outline" class="full-width">
+                  <mat-label>{{ field.displayName }}</mat-label>
+                  <input matInput [formControlName]="field.name" [placeholder]="field.displayName">
+                  <mat-error *ngIf="recordForm.get(field.name)?.hasError('required')">
+                    {{ field.displayName }} is required
+                  </mat-error>
+                </mat-form-field>
+              </ng-container>
+            </div>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelRecordEdit()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveRecord()" [disabled]="recordForm.invalid">
+            {{ editMode ? 'Update' : 'Create' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Data Table -->
+    <div *ngIf="selectedCollection && !showRecordForm" class="data-table-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ selectedCollection.displayName }}</mat-card-title>
+          <mat-card-subtitle *ngIf="selectedSchema">{{ selectedSchema.displayName }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Filter Form -->
+          <form [formGroup]="filterForm" class="filter-form">
+            <mat-form-field appearance="outline">
+              <mat-label>Search</mat-label>
+              <input matInput formControlName="searchTerm" placeholder="Type to search...">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <div class="filter-actions">
+              <button mat-button (click)="resetFilter()">Reset</button>
+              <button mat-raised-button color="primary" (click)="applyFilter()">Apply</button>
+            </div>
+          </form>
+
+          <!-- Data Table -->
+          <div class="table-responsive">
+            <table mat-table [dataSource]="dataSource" matSort class="data-table">
+              <!-- ID Column -->
+              <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+                <td mat-cell *matCellDef="let row">{{ row.id }}</td>
+              </ng-container>
+
+              <!-- Dynamic Columns -->
+              <ng-container *ngFor="let column of displayedColumns" [matColumnDef]="column" 
+                           [ngSwitch]="column">
+                <ng-container *ngSwitchCase="'id'">
+                  <!-- Already handled above -->
+                </ng-container>
+                
+                <ng-container *ngSwitchCase="'actions'">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let row">
+                    <button mat-icon-button color="primary" (click)="editRecord(row)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteRecord(row)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+                
+                <ng-container *ngSwitchDefault>
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>
+                    {{ getFieldByName(column)?.displayName || column }}
+                  </th>
+                  <td mat-cell *matCellDef="let row">
+                    {{ getFieldDisplayValue(row, column) }}
+                  </td>
+                </ng-container>
+              </ng-container>
+
+              <!-- Table Layout -->
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+              <!-- Empty State Row -->
+              <tr class="mat-row" *matNoDataRow>
+                <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+                  No data found
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons></mat-paginator>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- No Collections Message -->
+    <div *ngIf="!loading && !selectedCollection && collections.length === 0" class="no-collections">
+      <mat-icon>storage</mat-icon>
+      <h2>No collections available</h2>
+      <p>Create collections in the Schema Designer to start working with data</p>
+      <button mat-raised-button color="primary" routerLink="/schema-designer">
+        Go to Schema Designer
+      </button>
+    </div>
+  </div>
+</div>

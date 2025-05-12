@@ -1,0 +1,347 @@
+<div class="workflow-builder-container">
+  <div class="builder-header">
+    <h1>Workflow Builder</h1>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="createNewWorkflow()">
+        <mat-icon>add</mat-icon> New Workflow
+      </button>
+      <button mat-icon-button (click)="loadWorkflows()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading" class="builder-content">
+    <!-- Workflow Details Form -->
+    <div *ngIf="showWorkflowDetails" class="workflow-details-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>{{ editMode ? 'Edit Workflow' : 'New Workflow' }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="workflowForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g., order_processing">
+              <mat-hint>Use lowercase letters, numbers, and underscores only</mat-hint>
+              <mat-error *ngIf="workflowForm.get('name')?.hasError('required')">Name is required</mat-error>
+              <mat-error *ngIf="workflowForm.get('name')?.hasError('pattern')">Name can only contain lowercase letters, numbers, and underscores</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Display Name</mat-label>
+              <input matInput formControlName="displayName" placeholder="e.g., Order Processing">
+              <mat-error *ngIf="workflowForm.get('displayName')?.hasError('required')">Display name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe the purpose of this workflow"></textarea>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Trigger Type</mat-label>
+              <mat-select formControlName="triggerType">
+                <mat-option *ngFor="let trigger of triggerTypes" [value]="trigger.type">
+                  {{ trigger.name }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-checkbox formControlName="active">Active</mat-checkbox>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelWorkflowEdit()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveWorkflow()" [disabled]="workflowForm.invalid">
+            {{ editMode ? 'Update' : 'Create' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Node Editor -->
+    <div *ngIf="showNodeEditor && selectedNode" class="node-editor-container">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Edit {{ getNodeTypeName(selectedNode.type) }}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="nodeForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g., Check Order Status">
+              <mat-error *ngIf="nodeForm.get('name')?.hasError('required')">Name is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" placeholder="Describe this node"></textarea>
+            </mat-form-field>
+
+            <!-- Dynamic configuration fields based on node type -->
+            <div formGroupName="config">
+              <!-- Trigger node config -->
+              <ng-container *ngIf="selectedNode.type === 'trigger'">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Trigger Type</mat-label>
+                  <mat-select formControlName="triggerType">
+                    <mat-option *ngFor="let trigger of triggerTypes" [value]="trigger.type">
+                      {{ trigger.name }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <ng-container *ngIf="nodeForm.get('config.triggerType')?.value === 'event'">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Collection</mat-label>
+                    <mat-select formControlName="collection">
+                      <mat-option *ngFor="let collection of collections" [value]="collection.name">
+                        {{ collection.displayName }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Event</mat-label>
+                    <mat-select formControlName="event">
+                      <mat-option value="create">Create</mat-option>
+                      <mat-option value="update">Update</mat-option>
+                      <mat-option value="delete">Delete</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </ng-container>
+
+                <ng-container *ngIf="nodeForm.get('config.triggerType')?.value === 'schedule'">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Schedule (Cron Expression)</mat-label>
+                    <input matInput formControlName="schedule" placeholder="e.g., 0 0 * * *">
+                    <mat-hint>Format: Minute Hour Day Month Weekday</mat-hint>
+                  </mat-form-field>
+                </ng-container>
+              </ng-container>
+
+              <!-- Condition node config -->
+              <ng-container *ngIf="selectedNode.type === 'condition'">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Condition Expression</mat-label>
+                  <textarea matInput formControlName="condition" placeholder="e.g., data.status === 'approved'"></textarea>
+                  <mat-hint>JavaScript expression that evaluates to true/false</mat-hint>
+                </mat-form-field>
+              </ng-container>
+
+              <!-- Action node config -->
+              <ng-container *ngIf="selectedNode.type === 'action'">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Action Type</mat-label>
+                  <mat-select formControlName="actionType">
+                    <mat-option value="create">Create Record</mat-option>
+                    <mat-option value="update">Update Record</mat-option>
+                    <mat-option value="delete">Delete Record</mat-option>
+                    <mat-option value="http">HTTP Request</mat-option>
+                    <mat-option value="email">Send Email</mat-option>
+                    <mat-option value="script">Run Script</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <ng-container *ngIf="['create', 'update', 'delete'].includes(nodeForm.get('config.actionType')?.value)">
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Collection</mat-label>
+                    <mat-select formControlName="collection">
+                      <mat-option *ngFor="let collection of collections" [value]="collection.name">
+                        {{ collection.displayName }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </ng-container>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Data / Configuration</mat-label>
+                  <textarea matInput formControlName="data" rows="5"></textarea>
+                  <mat-hint>JSON configuration for the action</mat-hint>
+                </mat-form-field>
+              </ng-container>
+
+              <!-- Delay node config -->
+              <ng-container *ngIf="selectedNode.type === 'delay'">
+                <div class="delay-config">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Duration</mat-label>
+                    <input matInput type="number" formControlName="duration" min="1">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Unit</mat-label>
+                    <mat-select formControlName="durationType">
+                      <mat-option value="seconds">Seconds</mat-option>
+                      <mat-option value="minutes">Minutes</mat-option>
+                      <mat-option value="hours">Hours</mat-option>
+                      <mat-option value="days">Days</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </ng-container>
+
+              <!-- Loop node config -->
+              <ng-container *ngIf="selectedNode.type === 'loop'">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Items Expression</mat-label>
+                  <input matInput formControlName="items" placeholder="e.g., data.items">
+                  <mat-hint>JavaScript expression that evaluates to an array</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Variable Name</mat-label>
+                  <input matInput formControlName="variableName" placeholder="e.g., item">
+                  <mat-hint>Name of the variable to use in the loop</mat-hint>
+                </mat-form-field>
+              </ng-container>
+            </div>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelNodeEdit()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveNode()" [disabled]="nodeForm.invalid">
+            Save
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Workflow Canvas -->
+    <div *ngIf="!showWorkflowDetails && !showNodeEditor && selectedWorkflow" class="workflow-canvas-container">
+      <div class="canvas-tools">
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <div class="node-types">
+              <h3>Add Node</h3>
+              <div class="node-type-buttons">
+                <button mat-stroked-button *ngFor="let nodeType of nodeTypes" (click)="addNode(nodeType.type)" [disabled]="nodeType.type === 'trigger'">
+                  <mat-icon>{{ nodeType.icon }}</mat-icon>
+                  <span>{{ nodeType.name }}</span>
+                </button>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card appearance="outlined" class="workflow-info">
+          <mat-card-header>
+            <mat-card-title>{{ selectedWorkflow.displayName }}</mat-card-title>
+            <mat-card-subtitle>
+              <span [class.active-badge]="selectedWorkflow.active" [class.inactive-badge]="!selectedWorkflow.active">
+                {{ selectedWorkflow.active ? 'Active' : 'Inactive' }}
+              </span>
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p *ngIf="selectedWorkflow.description">{{ selectedWorkflow.description }}</p>
+            <p><strong>Trigger:</strong> {{ selectedWorkflow.trigger.type | titlecase }}</p>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-stroked-button color="primary" (click)="toggleWorkflowState(selectedWorkflow)">
+              {{ selectedWorkflow.active ? 'Disable' : 'Enable' }}
+            </button>
+            <button mat-stroked-button color="primary" (click)="editWorkflow(selectedWorkflow)">
+              <mat-icon>edit</mat-icon> Edit
+            </button>
+            <button mat-stroked-button color="warn" (click)="deleteWorkflow(selectedWorkflow)">
+              <mat-icon>delete</mat-icon> Delete
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+
+      <!-- Workflow Canvas -->
+      <div class="workflow-canvas">
+        <div class="canvas-placeholder">
+          <div class="workflow-nodes">
+            <div *ngFor="let node of nodes" class="workflow-node" [class]="'node-type-' + node.type">
+              <div class="node-header">
+                <mat-icon>{{ getNodeTypeIcon(node.type) }}</mat-icon>
+                <span class="node-title">{{ node.data.name }}</span>
+              </div>
+              <div class="node-content">
+                <p *ngIf="node.data.description">{{ node.data.description }}</p>
+              </div>
+              <div class="node-actions">
+                <button mat-icon-button (click)="editNode(node)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="deleteNode(node)" [disabled]="node.type === 'trigger' && nodes.length > 1">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="workflow-edges">
+            <div *ngFor="let edge of edges" class="workflow-edge">
+              <div class="edge-label" *ngIf="edge.label">{{ edge.label }}</div>
+              <button mat-icon-button class="edge-delete" (click)="deleteEdge(edge)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="nodes.length <= 1" class="canvas-empty-message">
+            <p>Add nodes to build your workflow</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflows List -->
+    <div *ngIf="!showWorkflowDetails && !showNodeEditor && !selectedWorkflow" class="workflows-list-container">
+      <div class="workflows-grid">
+        <mat-card *ngFor="let workflow of workflows" appearance="outlined" class="workflow-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>account_tree</mat-icon>
+            <mat-card-title>{{ workflow.displayName }}</mat-card-title>
+            <mat-card-subtitle>
+              <span [class.active-badge]="workflow.active" [class.inactive-badge]="!workflow.active">
+                {{ workflow.active ? 'Active' : 'Inactive' }}
+              </span>
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p *ngIf="workflow.description">{{ workflow.description }}</p>
+            <p *ngIf="!workflow.description" class="no-description">No description</p>
+            <div class="workflow-metadata">
+              <p><strong>Trigger:</strong> {{ workflow.trigger.type | titlecase }}</p>
+              <p><strong>Nodes:</strong> {{ workflow.nodes.length }}</p>
+            </div>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-icon-button (click)="toggleWorkflowState(workflow)" [color]="workflow.active ? 'accent' : 'primary'">
+              <mat-icon>{{ workflow.active ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+            </button>
+            <button mat-icon-button (click)="deleteWorkflow(workflow)" color="warn">
+              <mat-icon>delete</mat-icon>
+            </button>
+            <button mat-icon-button (click)="editWorkflow(workflow)" color="primary">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-button color="primary" (click)="selectWorkflow(workflow)">
+              Open
+            </button>
+          </mat-card-actions>
+        </mat-card>
+        
+        <!-- Empty state -->
+        <div *ngIf="workflows.length === 0" class="empty-workflows">
+          <mat-icon>account_tree</mat-icon>
+          <h2>No workflows created yet</h2>
+          <p>Create your first workflow to automate your processes</p>
+          <button mat-raised-button color="primary" (click)="createNewWorkflow()">
+            <mat-icon>add</mat-icon> Create Workflow
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

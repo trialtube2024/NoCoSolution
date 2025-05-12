@@ -1,0 +1,162 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <button mat-mini-fab color="primary" (click)="refresh()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <mat-card appearance="outlined" class="error-card">
+      <mat-card-content>
+        <mat-icon color="warn">error</mat-icon>
+        <p>There was an error loading the dashboard data. Please try again later.</p>
+        <button mat-raised-button color="primary" (click)="refresh()">Retry</button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div *ngIf="!loading && !error" class="dashboard-content">
+    <!-- Quick Stats -->
+    <div class="stats-container">
+      <mat-card appearance="outlined" class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>table_chart</mat-icon>
+          </div>
+          <div class="stat-details">
+            <h2 class="stat-value">{{ totalCollections }}</h2>
+            <p class="stat-title">Collections</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>dynamic_form</mat-icon>
+          </div>
+          <div class="stat-details">
+            <h2 class="stat-value">{{ totalForms }}</h2>
+            <p class="stat-title">Forms</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>account_tree</mat-icon>
+          </div>
+          <div class="stat-details">
+            <h2 class="stat-value">{{ totalWorkflows }}</h2>
+            <p class="stat-title">Workflows</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>admin_panel_settings</mat-icon>
+          </div>
+          <div class="stat-details">
+            <h2 class="stat-value">{{ totalRoles }}</h2>
+            <p class="stat-title">Roles</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="recent-activity">
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Recent Activity</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Activity Chart would go here. We'll use placeholder since chart components require additional setup -->
+          <div class="chart-placeholder">
+            <div *ngFor="let item of chartData" class="chart-bar">
+              <div class="bar-label">{{ item.name }}</div>
+              <div class="bar-container">
+                <div class="bar" [style.width.%]="(item.value / 2500) * 100"></div>
+                <span class="bar-value">{{ item.value }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Recent Items -->
+    <div class="recent-items">
+      <mat-card appearance="outlined" class="recent-schemas">
+        <mat-card-header>
+          <mat-card-title>Recent Schemas</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list role="list">
+            <mat-list-item role="listitem" *ngFor="let schema of schemas.slice(0, 5)">
+              <span matListItemTitle>{{ schema.displayName }}</span>
+              <span matListItemLine>{{ schema.collections.length }} collections</span>
+            </mat-list-item>
+            <mat-list-item *ngIf="schemas.length === 0">
+              <span matListItemTitle>No schemas found</span>
+              <span matListItemLine>Create your first schema in the Schema Designer</span>
+            </mat-list-item>
+          </mat-list>
+          <div class="view-all">
+            <a mat-button color="primary" routerLink="/schema-designer">View All</a>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="recent-forms">
+        <mat-card-header>
+          <mat-card-title>Recent Forms</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list role="list">
+            <mat-list-item role="listitem" *ngFor="let form of forms.slice(0, 5)">
+              <span matListItemTitle>{{ form.displayName }}</span>
+              <span matListItemLine>Collection: {{ form.collection }}</span>
+            </mat-list-item>
+            <mat-list-item *ngIf="forms.length === 0">
+              <span matListItemTitle>No forms found</span>
+              <span matListItemLine>Create your first form in the Form Builder</span>
+            </mat-list-item>
+          </mat-list>
+          <div class="view-all">
+            <a mat-button color="primary" routerLink="/form-builder">View All</a>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="recent-workflows">
+        <mat-card-header>
+          <mat-card-title>Recent Workflows</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list role="list">
+            <mat-list-item role="listitem" *ngFor="let workflow of workflows.slice(0, 5)">
+              <span matListItemTitle>{{ workflow.displayName }}</span>
+              <span matListItemLine>{{ workflow.active ? 'Active' : 'Inactive' }}</span>
+            </mat-list-item>
+            <mat-list-item *ngIf="workflows.length === 0">
+              <span matListItemTitle>No workflows found</span>
+              <span matListItemLine>Create your first workflow in the Workflow Builder</span>
+            </mat-list-item>
+          </mat-list>
+          <div class="view-all">
+            <a mat-button color="primary" routerLink="/workflow-builder">View All</a>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>
