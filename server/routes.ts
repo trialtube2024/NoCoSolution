@@ -1193,7 +1193,6 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const TOKEN_EXPIRY = '15m';
 
 // Add refresh token endpoint
