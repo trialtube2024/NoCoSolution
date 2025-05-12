@@ -117,17 +117,16 @@ export function getAuthToken() {
 export async function authFetch(url: string, options: RequestInit = {}) {
   const token = getAuthToken();
   
-  const headers = {
-    ...options.headers,
-    "Content-Type": "application/json"
-  };
+  // Create headers object
+  const newHeaders = new Headers(options.headers);
+  newHeaders.set("Content-Type", "application/json");
   
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    newHeaders.set("Authorization", `Bearer ${token}`);
   }
   
   return fetch(url, {
     ...options,
-    headers
+    headers: newHeaders
   });
 }
