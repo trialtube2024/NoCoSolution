@@ -7,6 +7,9 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import SchemaDesigner from "@/pages/schema";
 import WorkflowBuilder from "@/pages/workflows";
+import RoleManager from "@/pages/roles";
+import DataExplorer from "@/pages/data";
+import Dashboard from "@/pages/dashboard";
 
 // Lazy load other pages to improve initial load time
 import { lazy, Suspense } from "react";
@@ -23,25 +26,9 @@ function Router() {
         </Suspense>
       </Route>
       <Route path="/workflows" component={WorkflowBuilder} />
-      {/* Future routes will be added here */}
-      <Route path="/dashboard">
-        <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-          <p>Dashboard functionality coming soon.</p>
-        </div>
-      </Route>
-      <Route path="/roles">
-        <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-bold mb-6">Access Control</h1>
-          <p>Role management functionality coming soon.</p>
-        </div>
-      </Route>
-      <Route path="/data">
-        <div className="container mx-auto p-6">
-          <h1 className="text-3xl font-bold mb-6">Data Explorer</h1>
-          <p>Data Explorer functionality coming soon.</p>
-        </div>
-      </Route>
+      <Route path="/roles" component={RoleManager} />
+      <Route path="/data" component={DataExplorer} />
+      <Route path="/dashboard" component={Dashboard} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />

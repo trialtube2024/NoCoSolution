@@ -595,11 +595,299 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(202).json({ message: "Workflow execution started", executionId: String(Date.now()) });
   });
 
+  // Mock data for roles and users
+  let roles = [
+    {
+      id: "1",
+      name: "admin",
+      displayName: "Administrator",
+      description: "Full access to all system features",
+      permissions: [
+        { resource: "users", actions: ["create", "read", "update", "delete"] },
+        { resource: "schemas", actions: ["create", "read", "update", "delete"] },
+        { resource: "forms", actions: ["create", "read", "update", "delete"] },
+        { resource: "workflows", actions: ["create", "read", "update", "delete"] },
+        { resource: "roles", actions: ["create", "read", "update", "delete"] }
+      ],
+      users: [
+        { id: "1", username: "admin", email: "admin@example.com" }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "2",
+      name: "editor",
+      displayName: "Editor",
+      description: "Can create and edit content, but cannot manage users or system settings",
+      permissions: [
+        { resource: "users", actions: ["read"] },
+        { resource: "schemas", actions: ["read", "update"] },
+        { resource: "forms", actions: ["create", "read", "update"] },
+        { resource: "workflows", actions: ["read", "update"] },
+        { resource: "roles", actions: ["read"] }
+      ],
+      users: [
+        { id: "2", username: "editor1", email: "editor1@example.com" },
+        { id: "3", username: "editor2", email: "editor2@example.com" }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: "3",
+      name: "viewer",
+      displayName: "Viewer",
+      description: "Read-only access to data",
+      permissions: [
+        { resource: "users", actions: ["read"] },
+        { resource: "schemas", actions: ["read"] },
+        { resource: "forms", actions: ["read"] },
+        { resource: "workflows", actions: ["read"] },
+        { resource: "roles", actions: [] }
+      ],
+      users: [
+        { id: "4", username: "viewer1", email: "viewer1@example.com" }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ];
+
+  let appUsers = [
+    { id: "1", username: "admin", email: "admin@example.com", password: "admin123", role: "admin" },
+    { id: "2", username: "editor1", email: "editor1@example.com", password: "editor123", role: "editor" },
+    { id: "3", username: "editor2", email: "editor2@example.com", password: "editor456", role: "editor" },
+    { id: "4", username: "viewer1", email: "viewer1@example.com", password: "viewer123", role: "viewer" },
+    { id: "5", username: "user1", email: "user1@example.com", password: "user123", role: null }
+  ];
+
+  // Roles API
+  app.get("/api/roles", (req: Request, res: Response) => {
+    // Remove sensitive information (like users' passwords)
+    const safeRoles = roles.map(role => ({
+      ...role,
+      users: role.users.map(user => {
+        const fullUser = appUsers.find(u => u.id === user.id);
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email || fullUser?.email
+        };
+      })
+    }));
+    
+    res.json(safeRoles);
+  });
+
+  app.get("/api/roles/:id", (req: Request, res: Response) => {
+    const role = roles.find(r => r.id === req.params.id);
+    
+    if (!role) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+    
+    // Remove sensitive information
+    const safeRole = {
+      ...role,
+      users: role.users.map(user => {
+        const fullUser = appUsers.find(u => u.id === user.id);
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email || fullUser?.email
+        };
+      })
+    };
+    
+    res.json(safeRole);
+  });
+
+  app.post("/api/roles", (req: Request, res: Response) => {
+    const { name, displayName, description } = req.body;
+    
+    // Basic validation
+    if (!name || !displayName) {
+      return res.status(400).json({ message: "Name and displayName are required" });
+    }
+    
+    // Check for duplicate names
+    if (roles.some(r => r.name === name)) {
+      return res.status(409).json({ message: "Role with this name already exists" });
+    }
+    
+    const newRole = {
+      id: String(Date.now()),
+      name,
+      displayName,
+      description,
+      permissions: [],
+      users: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    roles.push(newRole);
+    res.status(201).json(newRole);
+  });
+
+  app.put("/api/roles/:id", (req: Request, res: Response) => {
+    const { name, displayName, description, permissions } = req.body;
+    const roleIndex = roles.findIndex(r => r.id === req.params.id);
+    
+    if (roleIndex === -1) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+    
+    // Basic validation
+    if (!name || !displayName) {
+      return res.status(400).json({ message: "Name and displayName are required" });
+    }
+    
+    // Check for duplicate names, excluding current role
+    if (roles.some(r => r.name === name && r.id !== req.params.id)) {
+      return res.status(409).json({ message: "Role with this name already exists" });
+    }
+    
+    const updatedRole = {
+      ...roles[roleIndex],
+      name,
+      displayName,
+      description,
+      permissions: permissions || roles[roleIndex].permissions,
+      updatedAt: new Date().toISOString()
+    };
+    
+    roles[roleIndex] = updatedRole;
+    res.json(updatedRole);
+  });
+
+  app.delete("/api/roles/:id", (req: Request, res: Response) => {
+    const roleIndex = roles.findIndex(r => r.id === req.params.id);
+    
+    if (roleIndex === -1) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+    
+    // Remove role from users
+    appUsers = appUsers.map(user => {
+      if (user.role === roles[roleIndex].name) {
+        return { ...user, role: null };
+      }
+      return user;
+    });
+    
+    roles.splice(roleIndex, 1);
+    res.status(204).send();
+  });
+
+  // Add user to role
+  app.post("/api/roles/:id/users/:userId", (req: Request, res: Response) => {
+    const role = roles.find(r => r.id === req.params.id);
+    
+    if (!role) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+    
+    const user = appUsers.find(u => u.id === req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if user is already in this role
+    if (role.users.some(u => u.id === user.id)) {
+      return res.status(409).json({ message: "User is already assigned to this role" });
+    }
+    
+    // Add user to role
+    role.users.push({
+      id: user.id,
+      username: user.username,
+      email: user.email
+    });
+    
+    // Update user's role
+    user.role = role.name;
+    
+    res.status(200).json({ message: "User added to role successfully" });
+  });
+
+  // Remove user from role
+  app.delete("/api/roles/:id/users/:userId", (req: Request, res: Response) => {
+    const role = roles.find(r => r.id === req.params.id);
+    
+    if (!role) {
+      return res.status(404).json({ message: "Role not found" });
+    }
+    
+    const userIndex = role.users.findIndex(u => u.id === req.params.userId);
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found in this role" });
+    }
+    
+    // Remove user from role
+    role.users.splice(userIndex, 1);
+    
+    // Update user's role
+    const user = appUsers.find(u => u.id === req.params.userId);
+    if (user) {
+      user.role = null;
+    }
+    
+    res.status(204).send();
+  });
+
+  // Users API
+  app.get("/api/users", (req: Request, res: Response) => {
+    // Remove sensitive information
+    const safeUsers = appUsers.map(user => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    }));
+    
+    res.json(safeUsers);
+  });
+
+  app.get("/api/users/:id", (req: Request, res: Response) => {
+    const user = appUsers.find(u => u.id === req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Remove sensitive information
+    const safeUser = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
+    
+    res.json(safeUser);
+  });
+
   // Auth routes (basic)
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     const { username, password } = req.body;
     
     try {
+      // First check mock users
+      const mockUser = appUsers.find(u => u.username === username && u.password === password);
+      
+      if (mockUser) {
+        return res.json({ 
+          id: mockUser.id, 
+          username: mockUser.username,
+          email: mockUser.email,
+          role: mockUser.role
+        });
+      }
+      
+      // Then check storage
       const user = await storage.getUserByUsername(username);
       
       if (!user || user.password !== password) {
@@ -616,15 +904,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/register", async (req: Request, res: Response) => {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
     
     try {
+      // Check mock users first
+      if (appUsers.some(u => u.username === username)) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+      
+      // Then check storage
       const existingUser = await storage.getUserByUsername(username);
       
       if (existingUser) {
         return res.status(409).json({ message: "Username already exists" });
       }
       
+      // Create mock user if we're using the mock data
+      if (appUsers.length > 0) {
+        const newUser = {
+          id: String(Date.now()),
+          username,
+          email,
+          password,
+          role: null
+        };
+        
+        appUsers.push(newUser);
+        
+        return res.status(201).json({ 
+          id: newUser.id, 
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role
+        });
+      }
+      
+      // Otherwise use storage
       const newUser = await storage.createUser({ username, password });
       
       res.status(201).json({ 
